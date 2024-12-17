@@ -71,9 +71,10 @@ services:
       DD_LOGS_CONFIG_CONTAINER_COLLECT_ALL: "true"
       SSERVICE: ${SERVICE}
     volumes:
-      - /var/run/docker.sock:/var/run/docker.sock
+      - /var/run/docker.sock:/var/run/docker.sock:ro
       - /proc/:/host/proc/:ro
       - /sys/fs/cgroup/:/host/sys/fs/cgroup:ro
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro
     ports:
       - "8126:8126/tcp"
       - "8125:8125/udp"
