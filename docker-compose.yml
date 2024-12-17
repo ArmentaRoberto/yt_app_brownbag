@@ -1,0 +1,85 @@
+services:
+  db:
+    build:
+      context: .
+      dockerfile: db-custom/Dockerfile
+    environment:
+      POSTGRES_DB: youtube_db
+      POSTGRES_USER: username
+      POSTGRES_PASSWORD: password
+    networks:
+      - brownbag-lab-1
+
+  yt_app:
+    build:
+      context: ./yt_app
+      dockerfile: Dockerfile
+    labels:
+      my.custom.label.project: 'projectA'
+      my.custom.label.version: '1'
+    environment:
+      DD_ENV: ${ENVIRO}
+      DD_SERVICE: ${SERVICE}
+      DD_VERSION: 1.0.0
+      DD_AGENT_HOST: datadog-agent
+      DD_TRACE_AGENT_PORT: 8126
+      DD_LOGS_INJECTION: "true"
+      DATABASE_URI: postgresql://username:password@db:5432/youtube_db
+      DD_DYNAMIC_INSTRUMENTATION_ENABLED: "true"
+      DD_TRACE_DEBUG: "false"
+      DD_LOGS_ENABLED: "true"
+      DD_LOGS_CONFIG_CONTAINER_COLLECT_ALL: "true"
+    ports:
+      - "5010:5010"
+    networks:
+      - brownbag-lab-1
+    depends_on:
+      - db
+    env_file: .env
+
+  yt_crawler:
+    build:
+      context: ./yt_crawler
+      dockerfile: Dockerfile
+    environment:
+      DD_ENV: ${ENVIRO}
+      DD_SERVICE: ${SERVICE}
+      DD_VERSION: 1.0.0
+      DD_AGENT_HOST: datadog-agent
+      DD_TRACE_AGENT_PORT: 8126
+      DD_LOGS_INJECTION: "true"
+      DATABASE_URI: postgresql://username:password@db:5432/youtube_db
+      DD_DYNAMIC_INSTRUMENTATION_ENABLED: "true"
+      DD_TRACE_DEBUG: "false"
+      DD_LOGS_ENABLED: "true"
+      DD_LOGS_CONFIG_CONTAINER_COLLECT_ALL: "true"
+    networks:
+      - brownbag-lab-1
+    depends_on:
+      - db
+
+  datadog-agent:
+    image: datadog/agent:7.59.1
+    environment:
+      DD_API_KEY: ${API_KEY}
+      DD_APM_ENABLED: "true"
+      DD_REMOTE_CONFIGURATION_ENABLED: "true"
+      DD_ENV: ${ENVIRO}
+      DD_VERSION: 1.0.0
+      DD_LOGS_ENABLED: "true"
+      DD_CONTAINER_EXCLUDE: "name:datadog-agent"
+      DD_LOGS_CONFIG_CONTAINER_COLLECT_ALL: "true"
+      SSERVICE: ${SERVICE}
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - /proc/:/host/proc/:ro
+      - /sys/fs/cgroup/:/host/sys/fs/cgroup:ro
+    ports:
+      - "8126:8126/tcp"
+      - "8125:8125/udp"
+    networks:
+      - brownbag-lab-1
+
+networks:
+  brownbag-lab-1:
+    driver: bridge
